@@ -1,0 +1,302 @@
+{
+  "name": "AI FAQ Knowledge Base Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "AI FAQ Knowledge Base Bot",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -480,
+        0
+      ],
+      "id": "006e047c-6840-4076-aa74-b5d2c507d294",
+      "name": "Webhook",
+      "webhookId": "25739610-5bb6-4c2c-b926-217b0a99ca5a"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1-RJRdVYgBZbJYc1exQhvR51jY69rSGHD9RTt-B-yJio",
+          "mode": "list",
+          "cachedResultName": "AI FAQ Knowledge Base Bot",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-RJRdVYgBZbJYc1exQhvR51jY69rSGHD9RTt-B-yJio/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1-RJRdVYgBZbJYc1exQhvR51jY69rSGHD9RTt-B-yJio/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -272,
+        0
+      ],
+      "id": "2d349fd6-2424-4ce8-85a5-d1d9f23ad764",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "FB4hI1IFi02yq4fN",
+          "name": "Google Sheets OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are an AI FAQ assistant.\n\nCustomer Question:\n{{$node[\"Webhook\"].json.body.question}}\n\nKnowledge Base:\n{{$json.knowledgeBase}}\n\nRules:\n- Use ONLY the knowledge base provided.\n- If the answer exists in the knowledge base, return it.\n- If the answer does not exist, return status as \"needs_human\".\n- Do not make up answers.\n\nReturn:\nanswer\nstatus",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        112,
+        0
+      ],
+      "id": "9869902e-e5a0-4af9-a3d7-d5f621aab3f7",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"answer\": \"Our SEO services start from $500/month\",\n  \"status\": \"answered\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        256,
+        224
+      ],
+      "id": "1cd27c41-992f-4942-ae17-1d8abff99d98",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "88cc859c-6792-4f34-9dc1-711fd8833b75",
+              "leftValue": "={{$json.output.status}}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        0
+      ],
+      "id": "d0d3763e-952f-4673-9490-1fc35084c331",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        112,
+        192
+      ],
+      "id": "838ab513-279d-4532-83b7-a3913f39cc0c",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "4iA2T9wLTVAXcGRP",
+          "name": "OpenAI account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$node[\"Webhook\"].json.body.email}}",
+        "subject": "FAQ Response",
+        "message": "={{$json.output.answer}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        656,
+        -96
+      ],
+      "id": "24112a70-1170-41e4-a298-a9d74dad4a5b",
+      "name": "Customer Reply",
+      "webhookId": "2eb39625-0c25-48cd-9dae-52e4d958cbe4",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "zcrKdWfZ7OkoevGc",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "babarabbaskhokhar3393@gmail.com",
+        "subject": "FAQ Requires Human Review",
+        "message": "=Question: {{$node[\"Webhook\"].json.body.question}}  Customer Email: {{$node[\"Webhook\"].json.body.email}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        656,
+        96
+      ],
+      "id": "3133bc55-2049-45b3-bb33-9e92126538fb",
+      "name": "Human Escalation",
+      "webhookId": "abcd848b-3428-4d4f-8547-71f21c19db0f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "zcrKdWfZ7OkoevGc",
+          "name": "Gmail OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let knowledgeBase = \"\";\n\nfor (const item of $input.all()) {\n  knowledgeBase += `Question: ${item.json.Question}\\n`;\n  knowledgeBase += `Answer: ${item.json.Answer}\\n\\n`;\n}\n\nreturn [\n  {\n    json: {\n      knowledgeBase\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -64,
+        0
+      ],
+      "id": "facea478-efb0-40e6-b227-37e4dfe9ddb4",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Customer Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Human Escalation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "b52af44c-7b3e-4a96-864e-6a400e030a84",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d424743025bec5009babfaef2f79b3c75a37f9945ba27d8e733a678dbe205c12"
+  },
+  "nodeGroups": [],
+  "id": "IMK8JCivFhb4cnTI",
+  "tags": []
+}
